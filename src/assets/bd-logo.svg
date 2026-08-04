@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%" fill="none">
+  <!-- Handcrafted stylized organic 'bd' logo stroke with NO background (WHITE) -->
+  <g fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 'b' stroke outline -->
+    <path d="M 134 70 C 128 100 128 160 130 220 C 130 255 145 278 175 275 C 205 270 215 235 210 198 C 202 162 165 158 138 182 C 132 188 132 100 134 70 Z M 158 202 C 180 202 190 222 188 242 C 185 260 165 265 152 250 C 144 240 144 215 158 202 Z" fill-rule="evenodd" />
+    
+    <!-- 'd' stroke outline -->
+    <path d="M 235 195 C 208 198 195 230 202 260 C 210 282 240 285 265 268 C 272 262 272 215 270 195 C 268 150 272 100 270 70 C 265 62 255 68 258 80 C 260 110 258 160 260 205 C 255 198 245 194 235 195 Z M 228 215 C 245 212 255 228 255 248 C 254 265 238 270 225 260 C 215 250 215 225 228 215 Z" fill-rule="evenodd" />
+  </g>
+</svg>

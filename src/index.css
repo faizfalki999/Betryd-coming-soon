@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-mono: 'Space Grotesk', monospace;
+    --font-century: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    --font-archivo: 'Archivo Black', sans-serif;
+  }
+
+  html, body {
+    color-scheme: light !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+}
+
+.font-century {
+  font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+}
+
+.font-archivo {
+  font-family: 'Archivo Black', sans-serif;
+}
+
+/* Keyframe animations */
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 30s linear infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
