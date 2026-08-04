@@ -28,7 +28,7 @@ export function App() {
   };
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-white text-neutral-900 flex flex-col justify-between select-none font-sans antialiased">
+    <main className="relative w-full h-dvh min-h-dvh overflow-hidden bg-white text-neutral-900 flex flex-col justify-between select-none font-sans antialiased">
       {/* Technical Studio Background Lines & Reticle */}
       <BackgroundGrid />
 
