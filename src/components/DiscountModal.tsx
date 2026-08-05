@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { X, Check, ArrowRight } from 'lucide-react';
 import { sounds } from '../utils/audio';
-import { submitToBrevo } from '../utils/brevo';
+import { submitSubscriber } from '../utils/subscribe';
 
 interface DiscountModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export const DiscountModal: React.FC<DiscountModalProps> = ({ isOpen, onClose })
     setErrorMessage('');
     sounds.playClickSound();
 
-    const res = await submitToBrevo({ name, email });
+    const res = await submitSubscriber({ name, email });
     setIsLoading(false);
 
     if (res.success) {

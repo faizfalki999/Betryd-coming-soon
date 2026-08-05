@@ -1,9 +1,21 @@
+import { neon } from '@neondatabase/serverless';
+
 export default async function handler(req, res) {
   // Only accept POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
       message: 'Method Not Allowed. Please use POST.',
+    });
+  }
+
+  // Check DATABASE_URL environment variable
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.error('DATABASE_URL is missing in environment variables.');
+    return res.status(500).json({
+      success: false,
+      message: 'Server configuration error: DATABASE_URL is not configured.',
     });
   }
 
@@ -27,73 +39,50 @@ export default async function handler(req, res) {
     });
   }
 
-  // Read Brevo API Key strictly from environment variable
-  const brevoApiKey = process.env.BREVO_API_KEY;
-
-  if (!brevoApiKey || brevoApiKey === 'your_brevo_api_key_here') {
-    console.error('BREVO_API_KEY is missing or unconfigured in environment variables.');
-    return res.status(500).json({
-      success: false,
-      message: 'Server configuration error: BREVO_API_KEY is not configured on Vercel.',
-    });
-  }
-
-  // Parse name into FNAME / LNAME / FULLNAME attributes
+  const trimmedEmail = email.trim();
   const trimmedName = name ? String(name).trim() : '';
-  const nameParts = trimmedName.split(' ');
-  const firstName = nameParts[0] || '';
-  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
-  // Determine Brevo List ID
-  const listIdEnv = process.env.BREVO_LIST_ID;
-  const listIds = listIdEnv && !isNaN(Number(listIdEnv)) ? [Number(listIdEnv)] : [2];
 
   try {
-    const brevoResponse = await fetch('https://api.brevo.com/v3/contacts', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'api-key': brevoApiKey,
-      },
-      body: JSON.stringify({
-        email: email.trim(),
-        attributes: {
-          FNAME: firstName || trimmedName || '',
-          LNAME: lastName || '',
-          FULLNAME: trimmedName || '',
-        },
-        listIds: listIds,
-        updateEnabled: true,
-      }),
-    });
+    const sql = neon(databaseUrl);
 
-    if (brevoResponse.ok || brevoResponse.status === 201 || brevoResponse.status === 204) {
-      return res.status(200).json({
-        success: true,
-        message: 'Successfully subscribed to Betryd Early Access!',
-      });
-    }
+    // Ensure signups table exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS signups (
+        id SERIAL PRIMARY KEY,
+        name TEXT,
+        email TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
 
-    const data = await brevoResponse.json().catch(() => ({}));
+    // Insert new signup row into signups table
+    await sql`
+      INSERT INTO signups (name, email, created_at)
+      VALUES (${trimmedName}, ${trimmedEmail}, NOW());
+    `;
 
-    // Handle existing duplicate contact gracefully as success
-    if (data.code === 'duplicate_parameter') {
-      return res.status(200).json({
-        success: true,
-        message: 'You are already registered for Betryd launch updates!',
-      });
-    }
-
-    return res.status(brevoResponse.status || 400).json({
-      success: false,
-      message: data.message || 'Failed to register contact with Brevo.',
+    return res.status(200).json({
+      success: true,
+      message: 'Successfully subscribed to Betryd Early Access!',
     });
   } catch (error) {
-    console.error('Error connecting to Brevo API:', error);
+    console.error('Database insertion error:', error);
+
+    // Handle duplicate email error (Postgres code 23505 or unique constraint error message)
+    if (
+      error?.code === '23505' ||
+      (error?.message && error.message.toLowerCase().includes('unique')) ||
+      (error?.message && error.message.toLowerCase().includes('duplicate'))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'This email is already registered for early access!',
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      message: 'Internal server error while connecting to Brevo API.',
+      message: error?.message || 'Failed to save subscription to database.',
     });
   }
 }

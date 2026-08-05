@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, CheckCircle2, Sparkles, Clock, ShieldCheck, ArrowRight, Award } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sounds } from '../utils/audio';
+import { submitSubscriber } from '../utils/subscribe';
 
 interface ComingSoonModalProps {
   isOpen: boolean;
@@ -27,12 +28,13 @@ export const ComingSoonModal: React.FC<ComingSoonModalProps> = ({ isOpen, onClos
     return () => clearInterval(timer);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) return;
 
     sounds.playModalOpenSound();
     setIsSubmitted(true);
+    submitSubscriber({ email }).catch(() => {});
 
     // Trigger luxury celebratory confetti effect
     try {
