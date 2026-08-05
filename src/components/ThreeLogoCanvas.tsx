@@ -7,6 +7,10 @@ interface ThreeLogoCanvasProps {
   isModalOpen: boolean;
 }
 
+// Global texture cache to eliminate render delays on mobile/Safari
+let cachedProcessedCanvas: HTMLCanvasElement | null = null;
+let cachedAspectRatio: number = 1.0;
+
 export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
   onLogoClick,
   isModalOpen,
@@ -43,6 +47,9 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
     const container = mountRef.current;
     if (!container) return;
 
+    // Mobile detection for WebGL performance tuning
+    const isMobile = window.innerWidth < 768;
+
     // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#ffffff');
@@ -52,10 +59,15 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
     const camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
     camera.position.set(0, 0, 7.5);
 
-    // Renderer setup (Shadows completely disabled)
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    // High performance WebGL renderer tuning
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile,
+      alpha: true,
+      powerPreference: 'high-performance',
+      precision: isMobile ? 'mediump' : 'highp',
+    });
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
 
     // Clear element
     container.innerHTML = '';
@@ -70,73 +82,80 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
     logoGroupRef.current = logoGroup;
     scene.add(logoGroup);
 
-    // Load exact betryd.png image & convert to pure 100% jet black logo cutout
-    const img = new Image();
-    img.src = '/assets/betryd.png';
-    img.crossOrigin = 'anonymous';
+    // Helper to build 3D mesh layers from canvas texture
+    const setupMeshGroup = (canvas: HTMLCanvasElement, aspectRatio: number) => {
+      const logoTexture = new THREE.CanvasTexture(canvas);
+      logoTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
+      logoTexture.needsUpdate = true;
 
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
+      const logoHeight = 3.6;
+      const logoWidth = logoHeight * aspectRatio;
+      const logoGeometry = new THREE.PlaneGeometry(logoWidth, logoHeight);
 
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        const imgData = ctx.getImageData(0, 0, img.width, img.height);
-        const data = imgData.data;
+      const logoMaterial = new THREE.MeshBasicMaterial({
+        map: logoTexture,
+        transparent: true,
+        alphaTest: 0.05,
+        side: THREE.DoubleSide,
+        color: 0x000000,
+      });
 
-        // Process pixels: make background transparent, and make logo stroke 100% pure pitch black (#000000)
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-
-          // Near-white background -> transparent
-          if (r > 200 && g > 200 && b > 200) {
-            data[i + 3] = 0;
-          } else {
-            // Logo stroke -> 100% full rich pitch black
-            data[i] = 0;
-            data[i + 1] = 0;
-            data[i + 2] = 0;
-            if (data[i + 3] > 20) {
-              data[i + 3] = 255;
-            }
-          }
-        }
-
-        ctx.putImageData(imgData, 0, 0);
-
-        const logoTexture = new THREE.CanvasTexture(canvas);
-        logoTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        logoTexture.needsUpdate = true;
-
-        const aspectRatio = img.width / img.height;
-        const logoHeight = 3.6;
-        const logoWidth = logoHeight * aspectRatio;
-        const logoGeometry = new THREE.PlaneGeometry(logoWidth, logoHeight);
-
-        // Pure pitch black material
-        const logoMaterial = new THREE.MeshBasicMaterial({
-          map: logoTexture,
-          transparent: true,
-          alphaTest: 0.05,
-          side: THREE.DoubleSide,
-          color: 0x000000,
-        });
-
-        // Stack layers for tactile 3D volume
-        const layers = 6;
-        const depth = 0.08;
-        for (let i = 0; i < layers; i++) {
-          const zOffset = (i / (layers - 1) - 0.5) * depth;
-          const meshLayer = new THREE.Mesh(logoGeometry, logoMaterial);
-          meshLayer.position.z = zOffset;
-          logoGroup.add(meshLayer);
-        }
+      // Stack layers for 3D depth (fewer layers on mobile for speed)
+      const layers = isMobile ? 4 : 6;
+      const depth = 0.08;
+      for (let i = 0; i < layers; i++) {
+        const zOffset = (i / (layers - 1) - 0.5) * depth;
+        const meshLayer = new THREE.Mesh(logoGeometry, logoMaterial);
+        meshLayer.position.z = zOffset;
+        logoGroup.add(meshLayer);
       }
     };
+
+    // Use cached texture if already processed
+    if (cachedProcessedCanvas) {
+      setupMeshGroup(cachedProcessedCanvas, cachedAspectRatio);
+    } else {
+      // Load image & process pixels synchronously once
+      const img = new Image();
+      img.src = '/assets/betryd.png';
+      img.crossOrigin = 'anonymous';
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const imgData = ctx.getImageData(0, 0, img.width, img.height);
+          const data = imgData.data;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            if (r > 200 && g > 200 && b > 200) {
+              data[i + 3] = 0;
+            } else {
+              data[i] = 0;
+              data[i + 1] = 0;
+              data[i + 2] = 0;
+              if (data[i + 3] > 20) {
+                data[i + 3] = 255;
+              }
+            }
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+
+          cachedProcessedCanvas = canvas;
+          cachedAspectRatio = img.width / img.height;
+          setupMeshGroup(canvas, cachedAspectRatio);
+        }
+      };
+    }
 
     // Animation Loop
     let animationFrameId: number;

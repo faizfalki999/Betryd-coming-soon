@@ -14,7 +14,7 @@ export const Footer: React.FC<FooterProps> = ({ isAudioEnabled = true, onToggleA
       {/* Bottom Left / Mobile Stack Top: Instagram Handle */}
       <div className="pointer-events-auto flex items-center justify-center w-full sm:w-auto">
         <a
-          href="https://instagram.com"
+          href="https://www.instagram.com/betryd.studio/"
           target="_blank"
           rel="noreferrer"
           className="group px-4 py-2 bg-white/95 hover:bg-neutral-950 hover:text-white border border-neutral-200 hover:border-neutral-900 rounded-xl text-neutral-900 text-[11px] sm:text-xs font-mono tracking-wider transition-all duration-300 backdrop-blur-md shadow-sm flex items-center justify-center gap-2 w-auto"
