@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { DiscountModal } from './components/DiscountModal';
 import { BackgroundGrid } from './components/BackgroundGrid';
+import { PullToRefresh } from './components/PullToRefresh';
 import { sounds } from './utils/audio';
 
 export function App() {
@@ -29,6 +30,9 @@ export function App() {
 
   return (
     <main className="relative w-full h-dvh min-h-dvh overflow-hidden bg-white text-neutral-900 flex flex-col justify-between select-none font-sans antialiased">
+      {/* Pull down to refresh gesture indicator */}
+      <PullToRefresh />
+
       {/* Technical Studio Background Lines & Reticle */}
       <BackgroundGrid />
 
