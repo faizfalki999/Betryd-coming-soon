@@ -1,61 +1,97 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { sounds } from '../utils/audio';
 
-export const PullToRefresh: React.FC = () => {
+interface PullToRefreshProps {
+  onRefresh?: () => Promise<void> | void;
+}
+
+export const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh }) => {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const startYRef = useRef<number | null>(null);
   const isPullingRef = useRef(false);
+  const pullDistanceRef = useRef(0);
+  const isRefreshingRef = useRef(false);
+  const onRefreshRef = useRef(onRefresh);
 
   const PULL_THRESHOLD = 75; // Pull distance threshold in pixels
 
+  // Update refs to avoid re-binding event listeners
+  useEffect(() => {
+    isRefreshingRef.current = isRefreshing;
+  }, [isRefreshing]);
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
+
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      // Activate only on touch devices when scrolled to the top of the page
+      // Treat any scrollTop <= 0 as at the top of the page (iOS elastic scroll guard)
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      if (scrollTop <= 5 && e.touches.length === 1) {
+      if (scrollTop <= 0 && e.touches.length === 1 && !isRefreshingRef.current) {
         startYRef.current = e.touches[0].clientY;
         isPullingRef.current = true;
+        pullDistanceRef.current = 0;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPullingRef.current || startYRef.current === null || isRefreshing) return;
+      if (!isPullingRef.current || startYRef.current === null || isRefreshingRef.current) return;
 
       const currentY = e.touches[0].clientY;
       const deltaY = currentY - startYRef.current;
 
-      // Track downward pull with native-style resistance
+      // Track downward pull with resistance
       if (deltaY > 0) {
+        // Prevent browser native pull-to-refresh/rubber-band scrolling
+        if (e.cancelable) {
+          e.preventDefault();
+        }
         const distance = Math.min(deltaY * 0.45, 110);
+        pullDistanceRef.current = distance;
         setPullDistance(distance);
       } else {
+        pullDistanceRef.current = 0;
         setPullDistance(0);
       }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = async () => {
       if (!isPullingRef.current) return;
       isPullingRef.current = false;
 
-      if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
+      const finalDistance = pullDistanceRef.current;
+
+      if (finalDistance >= PULL_THRESHOLD && !isRefreshingRef.current) {
         setIsRefreshing(true);
         sounds.playClickSound();
 
-        // Keep spinner visible and spinning continuously while reloading
-        setTimeout(() => {
-          window.location.reload();
-        }, 400);
+        try {
+          if (onRefreshRef.current) {
+            await onRefreshRef.current();
+          } else {
+            // Simulated delay if no callback is supplied
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
+        } catch (err) {
+          console.error('Refresh failed:', err);
+        } finally {
+          setIsRefreshing(false);
+          setPullDistance(0);
+          pullDistanceRef.current = 0;
+        }
       } else {
-        // Released before threshold: animate back up and disappear without triggering refresh
         setPullDistance(0);
+        pullDistanceRef.current = 0;
       }
 
       startYRef.current = null;
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
@@ -63,7 +99,7 @@ export const PullToRefresh: React.FC = () => {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [pullDistance, isRefreshing]);
+  }, []);
 
   if (pullDistance <= 0 && !isRefreshing) return null;
 

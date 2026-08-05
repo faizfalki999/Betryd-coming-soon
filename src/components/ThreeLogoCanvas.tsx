@@ -58,14 +58,25 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
     const aspect = container.clientWidth / container.clientHeight;
     const camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
     camera.position.set(0, 0, 7.5);
+    
+    let logoGeometry: THREE.PlaneGeometry | null = null;
+    let logoMaterial: THREE.MeshBasicMaterial | null = null;
+    let logoTexture: THREE.CanvasTexture | null = null;
 
     // High performance WebGL renderer tuning
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isMobile,
-      alpha: true,
-      powerPreference: 'high-performance',
-      precision: isMobile ? 'mediump' : 'highp',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: !isMobile,
+        alpha: true,
+        powerPreference: 'high-performance',
+        precision: isMobile ? 'mediump' : 'highp',
+      });
+    } catch (e) {
+      console.error('Failed to create WebGLRenderer:', e);
+      throw new Error('WebGL failed to initialize on this device.');
+    }
+    
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
 
@@ -84,15 +95,15 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
 
     // Helper to build 3D mesh layers from canvas texture
     const setupMeshGroup = (canvas: HTMLCanvasElement, aspectRatio: number) => {
-      const logoTexture = new THREE.CanvasTexture(canvas);
+      logoTexture = new THREE.CanvasTexture(canvas);
       logoTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
       logoTexture.needsUpdate = true;
 
       const logoHeight = 3.6;
       const logoWidth = logoHeight * aspectRatio;
-      const logoGeometry = new THREE.PlaneGeometry(logoWidth, logoHeight);
+      logoGeometry = new THREE.PlaneGeometry(logoWidth, logoHeight);
 
-      const logoMaterial = new THREE.MeshBasicMaterial({
+      logoMaterial = new THREE.MeshBasicMaterial({
         map: logoTexture,
         transparent: true,
         alphaTest: 0.05,
@@ -233,6 +244,14 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+
+      // Dispose all WebGL / Three.js resources
+      logoGroup.clear();
+      if (logoGeometry) logoGeometry.dispose();
+      if (logoMaterial) logoMaterial.dispose();
+      if (logoTexture) logoTexture.dispose();
+
+      renderer.dispose();
       scene.clear();
     };
   }, []);
