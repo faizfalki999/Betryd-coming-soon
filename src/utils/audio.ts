@@ -4,7 +4,7 @@ const POPUP_AUDIO_URL = '/assets/Pop up.mp3.mpeg';
 
 class SoundEngine {
   public enabled: boolean = true;
-  public volume: number = 0.3; // 30% volume
+  public volume: number = 0.1; // 10% volume
   private logoSpinAudio: HTMLAudioElement | null = null;
   private popUpAudio: HTMLAudioElement | null = null;
 
