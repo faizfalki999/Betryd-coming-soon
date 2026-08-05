@@ -99,7 +99,7 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
       logoTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
       logoTexture.needsUpdate = true;
 
-      const logoHeight = 3.6;
+      const logoHeight = isMobile ? 4.5 : 5.2;
       const logoWidth = logoHeight * aspectRatio;
       logoGeometry = new THREE.PlaneGeometry(logoWidth, logoHeight);
 
