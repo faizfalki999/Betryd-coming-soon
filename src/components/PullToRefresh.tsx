@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { RefreshCw, ArrowDown } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
 export const PullToRefresh: React.FC = () => {
@@ -8,12 +7,13 @@ export const PullToRefresh: React.FC = () => {
   const startYRef = useRef<number | null>(null);
   const isPullingRef = useRef(false);
 
-  const PULL_THRESHOLD = 90; // Pixels needed to trigger refresh
+  const PULL_THRESHOLD = 75; // Pull distance threshold in pixels
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      // Only initiate pull-to-refresh if near the top of page
-      if (window.scrollY <= 10 && e.touches.length === 1) {
+      // Activate only on touch devices when scrolled to the top of the page
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      if (scrollTop <= 5 && e.touches.length === 1) {
         startYRef.current = e.touches[0].clientY;
         isPullingRef.current = true;
       }
@@ -25,10 +25,9 @@ export const PullToRefresh: React.FC = () => {
       const currentY = e.touches[0].clientY;
       const deltaY = currentY - startYRef.current;
 
-      // Only care about pulling downward
+      // Track downward pull with native-style resistance
       if (deltaY > 0) {
-        // Resistance curve calculation
-        const distance = Math.min(deltaY * 0.5, 140);
+        const distance = Math.min(deltaY * 0.45, 110);
         setPullDistance(distance);
       } else {
         setPullDistance(0);
@@ -42,10 +41,13 @@ export const PullToRefresh: React.FC = () => {
       if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
         setIsRefreshing(true);
         sounds.playClickSound();
+
+        // Keep spinner visible and spinning continuously while reloading
         setTimeout(() => {
           window.location.reload();
-        }, 300);
+        }, 400);
       } else {
+        // Released before threshold: animate back up and disappear without triggering refresh
         setPullDistance(0);
       }
 
@@ -65,35 +67,28 @@ export const PullToRefresh: React.FC = () => {
 
   if (pullDistance <= 0 && !isRefreshing) return null;
 
-  const isReadyToRelease = pullDistance >= PULL_THRESHOLD;
+  // Calculate subtle growth in size and opacity based on pull distance
+  const progress = Math.min(pullDistance / PULL_THRESHOLD, 1.0);
+  const opacity = isRefreshing ? 1 : Math.max(progress, 0.15);
+  const scale = isRefreshing ? 1 : 0.6 + progress * 0.4;
+  const rotation = isRefreshing ? 0 : progress * 360;
 
   return (
     <div
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-transform duration-200 ease-out"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200 ease-out"
       style={{
-        transform: `translate(-50%, ${Math.min(pullDistance, 100)}px)`,
+        transform: `translate(-50%, ${isRefreshing ? PULL_THRESHOLD : pullDistance}px) scale(${scale})`,
+        opacity: opacity,
       }}
     >
-      <div className="flex items-center gap-2 bg-black/90 text-white px-4 py-2 rounded-full shadow-2xl border border-neutral-700 backdrop-blur-md text-xs font-mono tracking-wider">
-        {isRefreshing ? (
-          <>
-            <RefreshCw className="w-4 h-4 animate-spin text-white" />
-            <span>REFRESHING...</span>
-          </>
-        ) : isReadyToRelease ? (
-          <>
-            <RefreshCw className="w-4 h-4 text-emerald-400 rotate-180 transition-transform duration-300" />
-            <span className="text-emerald-400 font-bold">RELEASE TO REFRESH</span>
-          </>
-        ) : (
-          <>
-            <ArrowDown
-              className="w-4 h-4 text-neutral-400 transition-transform duration-200"
-              style={{ transform: `rotate(${Math.min(pullDistance * 2, 180)}deg)` }}
-            />
-            <span className="text-neutral-300">PULL DOWN TO REFRESH</span>
-          </>
-        )}
+      {/* Minimalist circular ring spinner (no text, no logos, matching site's monochrome theme) */}
+      <div className="w-9 h-9 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
+        <div
+          className={`w-5 h-5 border-2 border-neutral-200 border-t-black rounded-full ${
+            isRefreshing ? 'animate-spin' : ''
+          }`}
+          style={!isRefreshing ? { transform: `rotate(${rotation}deg)` } : undefined}
+        />
       </div>
     </div>
   );
