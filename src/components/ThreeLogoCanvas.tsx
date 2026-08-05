@@ -285,20 +285,10 @@ export const ThreeLogoCanvas: React.FC<ThreeLogoCanvasProps> = ({
     previousPointerPosRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = () => {
     if (!isPointerDownRef.current) return;
     isPointerDownRef.current = false;
     sounds.playReleaseSound();
-
-    // Distance calculation to differentiate click vs drag
-    const dx = Math.abs(e.clientX - pointerStartPosRef.current.x);
-    const dy = Math.abs(e.clientY - pointerStartPosRef.current.y);
-
-    if (dx < 6 && dy < 6) {
-      // User tapped/clicked the logo!
-      sounds.playModalOpenSound();
-      onLogoClick();
-    }
   };
 
   return (
