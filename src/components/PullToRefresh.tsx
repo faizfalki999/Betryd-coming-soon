@@ -111,9 +111,9 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh }) => {
 
   return (
     <div
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200 ease-out"
+      className="fixed top-4 left-0 w-full z-50 pointer-events-none flex justify-center transition-all duration-200 ease-out"
       style={{
-        transform: `translate(-50%, ${isRefreshing ? PULL_THRESHOLD : pullDistance}px) scale(${scale})`,
+        transform: `translateY(${isRefreshing ? PULL_THRESHOLD : pullDistance}px) scale(${scale})`,
         opacity: opacity,
       }}
     >
