@@ -118,7 +118,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh }) => {
       }}
     >
       {/* Minimalist circular ring spinner (no text, no logos, matching site's monochrome theme) */}
-      <div className="w-9 h-9 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
+      <div className="w-9 h-9 ml-2 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
         <div
           className={`w-5 h-5 border-2 border-neutral-200 border-t-black rounded-full ${
             isRefreshing ? 'animate-spin' : ''
