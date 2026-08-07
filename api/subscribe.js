@@ -1,4 +1,7 @@
 import { neon } from '@neondatabase/serverless';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
   // Only accept POST requests
@@ -60,6 +63,18 @@ export default async function handler(req, res) {
       INSERT INTO signups (name, email, created_at)
       VALUES (${trimmedName}, ${trimmedEmail}, NOW());
     `;
+
+    // Send welcome email via Resend in its own try/catch to avoid blocking signup
+    try {
+      await resend.emails.send({
+        from: 'Betryd Studio <hello@betryd.com>',
+        to: trimmedEmail,
+        subject: 'Thanks for signing up to Betryd Studio!',
+        html: '<p>Thanks for joining the list! You will get early access and exclusive rewards as soon as we launch.</p>',
+      });
+    } catch (emailError) {
+      console.error('Resend email error:', emailError);
+    }
 
     return res.status(200).json({
       success: true,
